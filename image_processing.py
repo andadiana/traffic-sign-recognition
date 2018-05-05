@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from tkinter import filedialog
 
 # STOP signs
 FILENAME = "Images/30850175_1682513215165350_1569870497_o.jpg"
@@ -44,6 +45,14 @@ def opening(img):
     return closed_img
 
 
+def sliding_window(image, step_size, window_size):
+    # slide a window across the image
+    for y in range(0, image.shape[0], step_size):
+        for x in range(0, image.shape[1], step_size):
+            # yield the current window
+            yield (x, y, image[y:y + window_size[1], x:x + window_size[0]])
+
+
 def color_segmentation(img):
     hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
@@ -63,7 +72,7 @@ def color_segmentation(img):
     upper_blue = np.array([BLUE_MAX, BLUE_SAT_MAX, BLUE_VAL_MAX])
 
     # threshold the HSV image to get only blue colors
-    # blue_mask = cv2.inRange(hsv_img, lower_blue, upper_blue)
+    blue_mask = cv2.inRange(hsv_img, lower_blue, upper_blue)
 
     # TODO: add yellow thresholding
 
@@ -72,10 +81,10 @@ def color_segmentation(img):
 
     # Remove noise by applying opening operation
     red_mask_no_noise = opening(red_mask)
-    cv2.imshow("Red mask after opening", red_mask_no_noise)
+    # cv2.imshow("Red mask after opening", red_mask_no_noise)
 
     # Remove holes in objects by applying closing
-    # red_mask_no_noise = closing(red_mask_no_noise)
+    red_mask_no_noise = closing(red_mask_no_noise)
     # cv2.imshow("Red mask after opening and closing", red_mask_no_noise)
 
     # Mask used to flood filling.
@@ -92,25 +101,41 @@ def color_segmentation(img):
     # combine the two images to get the foreground
     floodfill_result = (red_mask_no_noise | img_floodfill_inv)
 
-    cv2.imshow("After flood filling", floodfill_result)
+    # cv2.imshow("After flood filling", floodfill_result)
 
     # Find contours
     im2, contours, hierarchy = cv2.findContours(floodfill_result, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    cv2.drawContours(img, contours, -1, (0, 255, 0), 3)
+    cv2.drawContours(img, contours, -1, (255, 0, 0), 1)
 
     cv2.imshow("Contours", img)
 
+    # cnt = contours[0]
+    padding = 2
+
+    # x, y, w, h = cv2.boundingRect(cnt)
+    # cv2.rectangle(img, (x - padding, y - padding), (x + w + padding, y + h + padding), (0, 255, 0), 2)
+    # roi = img[y:y + h + padding, x:x + w + padding]
+    # cv2.imshow("ROI", roi)
+
+    for cnt in contours:
+        x, y, w, h = cv2.boundingRect(cnt)
+        cv2.rectangle(img, (x - padding, y - padding), (x + w + padding, y + h + padding), (0, 255, 0), 2)
+
+    cv2.imshow("Bounding rectangles", img)
+
 
 def main():
-    img_original = cv2.imread(FILENAME, cv2.IMREAD_COLOR)
+    while 1:
+        inpath = filedialog.askopenfilename()
+        img = cv2.imread(inpath, cv2.IMREAD_COLOR)
 
-    # resize image
-    img = cv2.resize(img_original, (0,0), fx=0.2, fy=0.2, interpolation=cv2.INTER_CUBIC)
-    cv2.imshow("Original image", img)
+        # resize image
+        # img = cv2.resize(img, (0,0), fx=0.2, fy=0.2, interpolation=cv2.INTER_CUBIC)
+        cv2.imshow("Original image", img)
 
-    color_segmentation(img)
+        color_segmentation(img)
 
-    cv2.waitKey(0)
+        cv2.waitKey(0)
 
 
 if __name__ == "__main__":
