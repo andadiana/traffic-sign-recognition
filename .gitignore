@@ -1,3 +1,14 @@
+__pycache__/
+
 # PyCharm files
 .idea
 *.iml
+
+# Images
+Images/
+GTSRB/
+Training/
+Testing/
+*.png
+*.jpg
+*.ppm
